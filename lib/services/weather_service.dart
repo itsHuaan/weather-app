@@ -25,12 +25,31 @@ class WeatherService {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return "Permission denied";
+      }
     }
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
-    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-    String? city = placemarks[0].locality;
-    return city ?? "";
+    if (permission == LocationPermission.deniedForever) {
+      return "Permission denied forever. Please enable location services from settings.";
+    }
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      String? city = placemarks[0].locality;
+      if (city == null || city.isEmpty) {
+        city = placemarks[0].administrativeArea;
+      }
+      // String? city = placemarks[0].administrativeArea;
+      for (var placemark in placemarks) {
+        print('${placemark.toString()}\n\n');
+      }
+      return city ?? "Unknown city";
+    } catch (e) {
+      return "Failed to get location: ${e.toString()}";
+    }
   }
 }
